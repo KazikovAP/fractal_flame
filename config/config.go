@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"flag"
 
 	"golang.org/x/exp/constraints"
@@ -31,34 +32,32 @@ func CorrectValue[T number](value, minValue, maxValue T) T {
 	return value
 }
 
-func DefineFlags() (*flag.FlagSet, *Config) {
-	fs := flag.NewFlagSet("config", flag.ExitOnError)
-	config := &Config{}
-
-	fs.IntVar(&config.Width, "width", 3000, "Ширина изображения (по умолчанию 3000)")
-	fs.IntVar(&config.Height, "height", 3000, "Высота изображения (по умолчанию 3000)")
-	fs.IntVar(&config.Iterations, "iterations", 200000, "Количество итераций для генерации фрактала (по умолчанию 200000)")
-	fs.StringVar(&config.TransformFn, "trans", "waves", "Функция трансформации (доступные: spherical, sinusoidal, bubble, polar, waves)")
-	fs.IntVar(&config.TransformationCount, "trans_count", 3, "Количество трансформаций (по умолчанию 3)")
-	fs.IntVar(&config.Symmetry, "symmetry", 80, "Число симметрий (по умолчанию 80)")
-	fs.Float64Var(&config.Gamma, "gamma", 1.0, "Гамма коррекция (по умолчанию 1.0)")
-	fs.StringVar(&config.Mode, "mode", "single", "Режим выполнения программы (single - однопоточный или multi - многопоточный)")
-
-	return fs, config
-}
-
 func Init() (*Config, error) {
-	fs, config := DefineFlags()
-	if err := fs.Parse(flag.Args()); err != nil {
-		return nil, err
+	width := flag.Int("width", 2000, "Ширина изображения (по умолчанию 2000)")
+	height := flag.Int("height", 2000, "Высота изображения (по умолчанию 2000)")
+	iterations := flag.Int("iterations", 200000, "Количество итераций для генерации фрактала (по умолчанию 200000)")
+	transformFn := flag.String("trans", "spherical", "Функция трансформации (доступные: spherical, sinusoidal, bubble, polar, waves)")
+	transformationCount := flag.Int("trans_count", 3, "Количество трансформаций (по умолчанию 3)")
+	symmetry := flag.Int("symmetry", 80, "Число симметрий (по умолчанию 80)")
+	gamma := flag.Float64("gamma", 1.0, "Гамма коррекция (по умолчанию 1.0)")
+	mode := flag.String("mode", "single", "Режим выполнения программы (single - однопоточный или multi - многопоточный)")
+
+	flag.Parse()
+
+	config := &Config{
+		Width:               CorrectValue(*width, 3000, 5000),
+		Height:              CorrectValue(*height, 3000, 5000),
+		Iterations:          CorrectValue(*iterations, 100000, 250000),
+		TransformFn:         *transformFn,
+		TransformationCount: CorrectValue(*transformationCount, 1, 20),
+		Symmetry:            CorrectValue(*symmetry, 20, 120),
+		Gamma:               CorrectValue(*gamma, 1.0, 2.5),
+		Mode:                *mode,
 	}
 
-	config.Width = CorrectValue(config.Width, 3000, 5000)
-	config.Height = CorrectValue(config.Height, 3000, 5000)
-	config.Iterations = CorrectValue(config.Iterations, 100000, 250000)
-	config.TransformationCount = CorrectValue(config.TransformationCount, 1, 20)
-	config.Symmetry = CorrectValue(config.Symmetry, 20, 120)
-	config.Gamma = CorrectValue(config.Gamma, 1.0, 2.5)
+	if config.TransformFn == "" {
+		return nil, errors.New("функция трансформации должна быть указана")
+	}
 
 	return config, nil
 }
