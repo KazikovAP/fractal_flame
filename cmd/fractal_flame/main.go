@@ -21,7 +21,9 @@ func main() {
 
 	ioAdapter := infrastructure.NewIOAdapter(os.Stdout, logger)
 
-	factory, err := ts.NewTransformationFactory(cfg.TransformFn, ts.RandomColor)
+	transformFn := ts.TransformationType(cfg.TransformFn)
+
+	factory, err := ts.NewTransformationFactory(transformFn, ts.RandomColor)
 	if err != nil {
 		log.Fatalf("Ошибка создания фабрики трансформаций: %v", err)
 	}

@@ -27,18 +27,36 @@ func TestApp_Start_Success(t *testing.T) {
 		Symmetry:            80,
 		Gamma:               1.0,
 		Mode:                "single",
+		OutputDir:           t.TempDir(),
 	}
 
 	outputBuffer := &bytes.Buffer{}
 	ioAdapter := &MockIOAdapter{OutputBuffer: outputBuffer}
 
-	factory, _ := transformations.NewTransformationFactory(cfg.TransformFn, transformations.RandomColor)
+	transformFn := transformations.TransformationType(cfg.TransformFn)
+
+	validFunctions := map[transformations.TransformationType]bool{
+		transformations.Bubble:     true,
+		transformations.Sinusoidal: true,
+		transformations.Spherical:  true,
+		transformations.Polar:      true,
+		transformations.Waves:      true,
+	}
+
+	if !validFunctions[transformFn] {
+		t.Fatalf("Unknown transformation function: %s", cfg.TransformFn)
+	}
+
+	factory, err := transformations.NewTransformationFactory(transformFn, transformations.RandomColor)
+	if err != nil {
+		t.Fatalf("Expected no error creating TransformationFactory, but got: %v", err)
+	}
 
 	app := application.NewApp(cfg, ioAdapter, factory)
 
-	err := app.Start()
+	err = app.Start()
 	if err != nil {
-		t.Fatalf("Expected no error, but got: %v", err)
+		t.Fatalf("Expected no error starting app, but got: %v", err)
 	}
 
 	expectedOutput := "Запуск генерации изображения фрактального пламени с параметрами:"

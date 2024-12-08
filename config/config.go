@@ -16,6 +16,7 @@ type Config struct {
 	Symmetry            int
 	Gamma               float64
 	Mode                string
+	OutputDir           string
 }
 
 type number interface {
@@ -36,11 +37,12 @@ func Init() (*Config, error) {
 	width := flag.Int("width", 2000, "Ширина изображения (по умолчанию 2000)")
 	height := flag.Int("height", 2000, "Высота изображения (по умолчанию 2000)")
 	iterations := flag.Int("iterations", 200000, "Количество итераций для генерации фрактала (по умолчанию 200000)")
-	transformFn := flag.String("trans", "spherical", "Функция трансформации (доступные: spherical, sinusoidal, bubble, polar, waves)")
+	transformFn := flag.String("trans", "waves", "Функция трансформации (доступные: spherical, sinusoidal, bubble, polar, waves)")
 	transformationCount := flag.Int("trans_count", 3, "Количество трансформаций (по умолчанию 3)")
 	symmetry := flag.Int("symmetry", 80, "Число симметрий (по умолчанию 80)")
 	gamma := flag.Float64("gamma", 1.0, "Гамма коррекция (по умолчанию 1.0)")
 	mode := flag.String("mode", "single", "Режим выполнения программы (single - однопоточный или multi - многопоточный)")
+	outputDir := flag.String("output_dir", "data", "Директория для сохранения результата (по умолчанию 'data')")
 
 	flag.Parse()
 
@@ -53,6 +55,7 @@ func Init() (*Config, error) {
 		Symmetry:            CorrectValue(*symmetry, 20, 120),
 		Gamma:               CorrectValue(*gamma, 1.0, 2.5),
 		Mode:                *mode,
+		OutputDir:           *outputDir,
 	}
 
 	if config.TransformFn == "" {

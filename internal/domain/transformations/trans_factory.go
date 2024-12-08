@@ -7,22 +7,32 @@ import (
 	"github.com/KazikovAP/fractal_flame/internal/domain/fractal"
 )
 
+type TransformationType string
+
+const (
+	Bubble     TransformationType = "bubble"
+	Sinusoidal TransformationType = "sinusoidal"
+	Spherical  TransformationType = "spherical"
+	Polar      TransformationType = "polar"
+	Waves      TransformationType = "waves"
+)
+
 type TransformationFactory struct {
-	TransformFn string
+	TransformFn TransformationType
 	ColorFunc   func() color.Color
 }
 
-func NewTransformationFactory(transformFn string, colorFunc func() color.Color) (*TransformationFactory, error) {
-	validFunctions := map[string]bool{
-		"bubble":     true,
-		"sinusoidal": true,
-		"spherical":  true,
-		"polar":      true,
-		"waves":      true,
+func NewTransformationFactory(transformFn TransformationType, colorFunc func() color.Color) (*TransformationFactory, error) {
+	validFunctions := map[TransformationType]bool{
+		Bubble:     true,
+		Sinusoidal: true,
+		Spherical:  true,
+		Polar:      true,
+		Waves:      true,
 	}
 
 	if !validFunctions[transformFn] {
-		return nil, errors.New("unknown transformation function: " + transformFn)
+		return nil, errors.New("unknown transformation function: " + string(transformFn))
 	}
 
 	return &TransformationFactory{
@@ -35,15 +45,15 @@ func (tf *TransformationFactory) CreateTransformation() fractal.Transformation {
 	transformationColor := tf.ColorFunc()
 
 	switch tf.TransformFn {
-	case "bubble":
+	case Bubble:
 		return NewBubbleTransformation(transformationColor)
-	case "sinusoidal":
+	case Sinusoidal:
 		return NewSinusoidalTransformation(transformationColor)
-	case "spherical":
+	case Spherical:
 		return NewSphericalTransformation(transformationColor)
-	case "polar":
+	case Polar:
 		return NewPolarTransformation(transformationColor)
-	case "waves":
+	case Waves:
 		return NewWavesTransformation(transformationColor, 1.0, 1.0, 0.5, 0.5)
 	}
 

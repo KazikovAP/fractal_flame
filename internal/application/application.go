@@ -2,7 +2,6 @@ package application
 
 import (
 	"fmt"
-	"image"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -18,9 +17,10 @@ type ioAdapter interface {
 }
 
 type App struct {
-	io      ioAdapter
-	cfg     *config.Config
-	factory *transformations.TransformationFactory
+	io       ioAdapter
+	cfg      *config.Config
+	factory  *transformations.TransformationFactory
+	flameGen fractal.FlameGeneratorInterface
 }
 
 func NewApp(cfg *config.Config, io ioAdapter, factory *transformations.TransformationFactory) *App {
@@ -40,31 +40,19 @@ func (a *App) Start() error {
 
 	transform := a.getTransformations(a.cfg.TransformationCount)
 
-	var flameGen fractal.FlameGeneratorInterface
-
-	if a.cfg.Mode == "multi" {
-		flameGen = fractal.NewMultiFlameGenerator(a.cfg, transform)
-	} else {
-		flameGen = fractal.NewSingleFlameGenerator(a.cfg, transform)
-	}
-
-	var generatedImage *image.RGBA
-
-	var elapsedTime time.Duration
+	a.setGenerator(transform)
 
 	start := time.Now()
+	generatedImage := a.flameGen.Generate(transform)
+	elapsedTime := time.Since(start)
 
-	generatedImage = flameGen.Generate(transform)
-
-	elapsedTime = time.Since(start)
 	a.io.Output(fmt.Sprintf("Время выполнения: %v\n", elapsedTime))
 
-	outputDir := "data"
-	if err := os.MkdirAll(outputDir, os.ModePerm); err != nil {
-		return fmt.Errorf("ошибка создания директории %s: %w", outputDir, err)
+	if err := os.MkdirAll(a.cfg.OutputDir, os.ModePerm); err != nil {
+		return fmt.Errorf("ошибка создания директории %s: %w", a.cfg.OutputDir, err)
 	}
 
-	outputFile := filepath.Join(outputDir, fmt.Sprintf("fractal_%s.png", a.cfg.TransformFn))
+	outputFile := filepath.Join(a.cfg.OutputDir, fmt.Sprintf("fractal_%s.png", a.cfg.TransformFn))
 
 	file, err := os.Create(outputFile)
 	if err != nil {
@@ -79,6 +67,14 @@ func (a *App) Start() error {
 	a.io.Output(fmt.Sprintf("Фрактальное пламя сгенерировано и сохранено в файл: %s\n", outputFile))
 
 	return nil
+}
+
+func (a *App) setGenerator(transform []fractal.Transformation) {
+	if a.cfg.Mode == "multi" {
+		a.flameGen = fractal.NewMultiFlameGenerator(a.cfg, transform)
+	} else {
+		a.flameGen = fractal.NewSingleFlameGenerator(a.cfg, transform)
+	}
 }
 
 func (a *App) getTransformations(trCount int) []fractal.Transformation {

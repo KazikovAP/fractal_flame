@@ -10,6 +10,7 @@ import (
 
 type MultiFlameGenerator struct {
 	BaseFlameGenerator
+	Workers int
 }
 
 func NewMultiFlameGenerator(cfg *config.Config, transformations []Transformation) *MultiFlameGenerator {
@@ -22,6 +23,7 @@ func NewMultiFlameGenerator(cfg *config.Config, transformations []Transformation
 			Symmetry:        cfg.Symmetry,
 			Gamma:           cfg.Gamma,
 		},
+		Workers: runtime.NumCPU(),
 	}
 }
 
@@ -29,11 +31,14 @@ func (fg *MultiFlameGenerator) Generate(transformations []Transformation) *image
 	canvas := NewCanvas(fg.Width, fg.Height)
 	world := NewDefaultRect()
 
-	workers := runtime.NumCPU()
-	wg := sync.WaitGroup{}
-	jobChan := make(chan struct{}, workers)
+	if fg.Workers == 0 {
+		fg.Workers = runtime.NumCPU()
+	}
 
-	for w := 0; w < workers; w++ {
+	wg := sync.WaitGroup{}
+	jobChan := make(chan struct{}, fg.Workers)
+
+	for w := 0; w < fg.Workers; w++ {
 		wg.Add(1)
 
 		go func() {

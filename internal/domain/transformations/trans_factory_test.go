@@ -4,64 +4,42 @@ import (
 	"image/color"
 	"testing"
 
+	"github.com/KazikovAP/fractal_flame/internal/domain/fractal"
 	ts "github.com/KazikovAP/fractal_flame/internal/domain/transformations"
+	"github.com/stretchr/testify/require"
 )
 
-func TestNewTransformationFactory(t *testing.T) {
-	colorFunc := func() color.Color { return color.RGBA{R: 255, G: 0, B: 0, A: 255} }
-
-	tf, err := ts.NewTransformationFactory("bubble", colorFunc)
-	if err != nil {
-		t.Errorf("NewTransformationFactory() error = %v; want no error", err)
-	}
-
-	if tf == nil {
-		t.Error("NewTransformationFactory() = nil; want non-nil object")
-	}
-
-	_, err = ts.NewTransformationFactory("invalid", colorFunc)
-	if err == nil {
-		t.Error("NewTransformationFactory() error = nil; want error for unknown transformFn")
-	}
-
-	expectedErr := "unknown transformation function: invalid"
-	if err.Error() != expectedErr {
-		t.Errorf("NewTransformationFactory() error = %v; want %v", err.Error(), expectedErr)
-	}
-}
-
-func TestCreateTransformation(t *testing.T) {
+func TestNewTransformationFactory_ValidFunctions(t *testing.T) {
 	colorFunc := func() color.Color { return color.RGBA{R: 255, G: 0, B: 0, A: 255} }
 
 	tests := []struct {
-		transformFn string
-		expectError bool
+		transformFn ts.TransformationType
+		expected    fractal.Transformation
 	}{
-		{"bubble", false},
-		{"sinusoidal", false},
-		{"spherical", false},
-		{"polar", false},
-		{"waves", false},
-		{"invalid", true},
+		{ts.Bubble, ts.NewBubbleTransformation(colorFunc())},
+		{ts.Sinusoidal, ts.NewSinusoidalTransformation(colorFunc())},
+		{ts.Spherical, ts.NewSphericalTransformation(colorFunc())},
+		{ts.Polar, ts.NewPolarTransformation(colorFunc())},
+		{ts.Waves, ts.NewWavesTransformation(colorFunc(), 1.0, 1.0, 0.5, 0.5)},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.transformFn, func(t *testing.T) {
-			tf, err := ts.NewTransformationFactory(tt.transformFn, colorFunc)
-			if tt.expectError && err == nil {
-				t.Errorf("expected error for transformFn %s, but got nil", tt.transformFn)
-			}
+		t.Run(string(tt.transformFn), func(t *testing.T) {
+			factory, err := ts.NewTransformationFactory(tt.transformFn, colorFunc)
+			require.NoError(t, err, "NewTransformationFactory() should not return an error for valid transformFn")
+			require.NotNil(t, factory, "NewTransformationFactory() should return a non-nil factory")
 
-			if !tt.expectError && err != nil {
-				t.Errorf("did not expect error for transformFn %s, but got %v", tt.transformFn, err)
-			}
-
-			if !tt.expectError && tf != nil {
-				transformation := tf.CreateTransformation()
-				if transformation == nil {
-					t.Errorf("CreateTransformation() returned nil for transformFn %s", tt.transformFn)
-				}
-			}
+			transformation := factory.CreateTransformation()
+			require.EqualValues(t, tt.expected, transformation, "Created transformation does not match expected")
 		})
 	}
+}
+
+func TestNewTransformationFactory_InvalidFunction(t *testing.T) {
+	colorFunc := func() color.Color { return color.RGBA{R: 255, G: 0, B: 0, A: 255} }
+
+	_, err := ts.NewTransformationFactory("invalid", colorFunc)
+
+	require.EqualError(t, err, "unknown transformation function: invalid",
+		"Error message does not match expected")
 }
